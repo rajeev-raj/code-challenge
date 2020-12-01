@@ -1,0 +1,54 @@
+pipeline {
+  environment {
+    imagename = "registry.hub.docker.com/518572/mgh"
+    registryCredential = '518572'
+    dockerImage = ''
+    CLASSPATH = ".:selenium-server-standalone-3.141.59.jar:testng-6.5.1.jar"
+  }
+  agent any
+  stages {
+    stage('Cloning Git') {
+      steps {
+        git([url: 'https://github.com/rajeev-raj/AB-Challenge2.git', branch: 'main', credentialsId: 'github-id'])
+
+      }
+    }
+    stage('Building image') {
+      steps{
+        script {
+          dockerImage = docker.build imagename
+        }
+      }
+    }
+    stage('Push Image') {
+      steps{
+        script {
+          docker.withRegistry( 'https://registry.hub.docker.com/', '518572' ) {
+            dockerImage.push("$BUILD_NUMBER")
+             dockerImage.push('latest')
+
+          }
+        }
+      }
+    }
+   
+    stage('Deploying static image') {
+      steps{
+        sh "docker run -itd -p 90:80 $imagename"
+        //sh "docker rmi $imagename:$BUILD_NUMBER"
+        //sh "docker rmi $imagename:latest"
+
+      }
+    }
+    stage('Selenium test for static image') {
+     steps{
+	sh "java --version"
+	sh "javac --version"
+	sh "ls -ltrh"
+	sh "/usr/bin/javac StaticsiteSeleniumTest.java"
+        sh "/usr/bin/java StaticsiteSeleniumTest"
+    }
+  }
+}
+}
+
